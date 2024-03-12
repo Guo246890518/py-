@@ -1,0 +1,180 @@
+import numpy as np
+
+np.set_printoptions(precision=10)
+
+test = -1  # 循环开始
+tol = 0.05  # 精度
+alpha = 0.002489009
+lambda_val = 16439333
+u = 3
+betat = (1.4958410 ** (-9))
+deltat = 0.72898
+delta = 0.1
+deltai = 0.921801960
+mu = 1 / 74.7
+beta = 1.591747005
+mut = 0.894619519
+muc = 0.000943614
+sigma = 0.010987723
+T = 10  # set tolerance for the iteration
+N = 10  # number of subdevisions in time
+M = 10  # number of subdevisions in age
+h = T / N  # step size
+t = np.linspace(0, T, N + 1)  # t-variable mesh
+aa = np.linspace(0, T, M + 1)  # a-variable mesh
+IntE2 = np.zeros(len(t))
+IntI2 = np.zeros(len(t))
+IntIT2 = np.zeros(len(t))
+IntIC2 = np.zeros(len(t))
+IntI = np.zeros(len(t))
+IntE = np.zeros(len(t))
+IntIT = np.zeros(len(t))
+IntIC = np.zeros(len(t))
+s0 = 1307560000  # 初值
+e0 = 154136723
+ix0 = 2566318
+it0 = 14052275
+ic0 = 27800
+IntB = 0
+s = np.zeros(len(t))
+ix = np.zeros((len(aa), len(t)))
+e = np.zeros((len(aa), len(t)))
+it = np.zeros(len(t))
+ic = np.zeros(len(t))
+r1 = np.zeros(len(t))
+r2 = np.zeros((len(aa), len(t)))
+r3 = np.zeros((len(aa), len(t)))
+r4 = np.zeros(len(t))
+r5 = np.zeros(len(t))
+s2 = np.zeros(len(t))
+ix2 = np.zeros((len(aa), len(t)))
+e2 = np.zeros((len(aa), len(t)))
+it2 = np.zeros(len(t))
+ic2 = np.zeros(len(t))
+u1 = np.zeros((len(aa), len(t)))
+u2 = np.zeros(len(t))
+rho1 = 10 ** 9
+rho2 = 2*10 ** 9
+U1max = 4
+U2max = 1
+
+while test < 0:
+    olds = np.copy(s)
+    oldu2 = np.copy(u2)
+    oldix = np.copy(ix)
+    olde = np.copy(e)
+    oldit = np.copy(it)
+    oldic = np.copy(ic)
+    oldr1 = np.copy(r1)
+    oldr2 = np.copy(r2)
+    oldr3 = np.copy(r3)
+    oldr4 = np.copy(r4)
+    oldr5 = np.copy(r5)
+    oldu1 = np.copy(u1)
+
+    s[0] = s0  # 初始值
+    it[0] = it0
+    ic[0] = ic0
+    e[:, 0] = e0
+    ix[:, 0] = ix0
+
+    e[0, 0] = betat * (1 - u2[0]) * s[1] * it[0]  # e的初始值(1-u2可以去掉）
+    for j in range(1, M + 1):
+        IntB += beta * ix[j, 0] * h
+
+    ix[0, 0] = s[1] * IntB
+
+    for n in range(1, N + 1):  # 状态方程
+        IntD = 0
+        IntE = 0
+        IntF = 0
+        IntG = 0
+
+        for i in range(1, M + 1):
+            IntD += h ** 2 * sigma * e[i, n]
+            IntE += h ** 2 * it[n] * deltat * ix[i, n]
+            IntF += h * u1[i - 1, n - 1] * delta * e[i - 1, n - 1]
+            IntG += h * beta * ix[i - 1, n - 1]
+
+        IntD_n = IntD
+        IntE_n = IntE
+        IntF_n_1 = IntF
+        IntG_n_1= IntG
+
+        for j in range(1, M + 1):  # 状态方程
+            e[j, n] = e[j - 1, n - 1] / (1 + h * (mu + u1[j - 1, n - 1] * delta + sigma))
+            it[n] = (it[n - 1] + IntD_n) / (1 + h * (mu + mut + alpha))
+            ix[j, n] = ix[j - 1, n - 1] / (1 + h * (mu + deltai + deltat * it[n - 1]))
+            ic[n] = (ic[n - 1] + IntE_n) / (1 + h * (mu + muc))
+            s[n] = (s[n - 1] + h * (lambda_val + alpha * it[n - 1] + IntF_n_1)) / (1 + h * (IntG_n_1 + betat * (
+                    1 - u2[n - 1]) * it[n - 1] + mu))
+
+        IntH = 0
+        for j in range(1, M + 1):
+            IntH += beta * ix[j, n] * h
+
+        ix[0, n] = s[n] * IntH
+        e[0, n] = betat * s[n] * (1 - u2[n]) * it[n]
+
+IntS = 0
+IntR1 = 0
+IntR2 = 0
+IntH = 0
+IntJ = 0
+IntB = 0
+IntD = 0
+IntE = 0
+IntF = 0
+IntG = 0
+
+# 第一个循环
+for i in range(1, M+2):
+    IntS += beta*ix[i][n] * h
+
+IntS_n = IntS
+
+# 第二个循环
+for j in range(1, M+2):
+    IntR1 += h*sigma*e[j][N+1]
+    IntR2 += h*deltat*ix[j][N+1]
+
+# 第三个循环
+for j in range(1, M+2):
+    r2[j][N+1] = (IntR1 + it[1][N+1] * IntR2 - u) * it[1][N+1] * deltat
+    r3[j][N+1] = (IntR1 + it[1][N+1] * IntR2 - u) * sigma
+    r4[1][N+1] = (IntR1 + it[1][N+1] * IntR2 - u) * IntR2
+
+# 两个嵌套循环
+for i in range(1, N):
+    for k in range(1, M):
+        n = N + 2 - i
+        j = M + 2 - k
+        r5[1][n-1] = r5[1][n] / (1 + h * (mu + muc))
+        r2[j-1][n-1] = (r2[j][n] - h * beta*s[1][n] * r1[1][n] + h * deltat * it[1][n] * r5[1][n] + h * r2[1][n] * s[1][n] * beta) / (1 + h * (mu + deltai + deltat * it[1][n]))
+        r1[1][n-1] = (r1[1][n] + h * r2[1][n] * IntS[n] + h * r3[1][n] * beta * (1 - u2[1][n-1]) * it[1][n]) / (1 + h * (IntS[n] + beta * (1 - u2[1][n-1]) * it[1][n] + mu))
+        r3[j-1][n-1] = (r3[j][n] + h * u1[j-1][n-1] * delta*r1[1][n] + sigma * r4[1][n]) / (1 + h * (mu + u1[j-1][n-1] * delta + sigma))
+
+# 再嵌套两个循环
+for n in range(1, N+2):
+    for j in range(1, M+2):
+        IntH = 0
+        IntJ = 0
+        for z in range(1, M+2):
+            IntH += delta*r2[z][n] * ix[z][n] * h ** 2
+            IntJ += deltat*ix[z][n] * r5[1][n] * h ** 2
+
+        IntH_n = IntH
+        IntJ_n = IntJ
+
+        r4[1][n-1] = (r4[1][n] - h * beta * (1 - u2[1][n-1]) * s[1][n] * r1[1][n] + h * alpha * r1[1][n] - IntH_n + IntJ_n + h * r3[1][n] * beta * (1 - u2[1][n-1]) * s[1][n]) / (1 + h * (mu + mut + alpha))
+
+# 控制变量循环
+for n in range(1, N+2):
+    for j in range(1, M+2):
+        u10 = min(U1max, max(1, (r3[j][n] - r1[1][n]) * delta*e[j][n] / rho1))
+    u20 = min(U2max, max(0, (r3[1][n] * beta*s[1][n] * it[1][n] + r1[1][n])))
+print(u)
+print(u1)
+print(u10)
+print(u2)
+print(u20)
